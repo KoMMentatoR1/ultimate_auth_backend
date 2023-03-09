@@ -15,10 +15,10 @@ export class TokenService {
 
   generateTokens(payload: JwtPayload) {
     const accessToken = jwt.sign(payload, process.env.JWT_ACCESS_SECRET, {
-      expiresIn: '15s',
+      expiresIn: '6h',
     })
     const refreshToken = jwt.sign(payload, process.env.JWT_REFTESH_SECRET, {
-      expiresIn: '30s',
+      expiresIn: '30d',
     })
     return {
       accessToken,
@@ -66,6 +66,12 @@ export class TokenService {
 
       return userData
     } catch (e) {
+      const currentToken = await this.userTokenModel.findOne({
+        where: { token },
+      })
+      if (currentToken) {
+        currentToken.destroy()
+      }
       return null
     }
   }
@@ -133,5 +139,25 @@ export class TokenService {
       },
     })
     return tokenData
+  }
+
+  async deleteDeadTokens(userId: number) {
+    const tokens = await this.userTokenModel.findAll({
+      where: {
+        userId,
+      },
+    })
+
+    for (const token of tokens) {
+      try {
+        jwt.verify(token.token, process.env.JWT_REFTESH_SECRET)
+      } catch (e) {
+        token.destroy()
+      }
+    }
+  }
+
+  parseJwt(token: string) {
+    return JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString())
   }
 }

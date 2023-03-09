@@ -66,10 +66,7 @@ export class MailService {
       })
       .then(() => {})
       .catch(e => {
-        throw new HttpException(
-          'Ошибка отправления сообщения',
-          HttpStatus.BAD_REQUEST
-        )
+        console.log(e)
       })
   }
 
@@ -149,7 +146,7 @@ export class MailService {
                   <p><strong>Browser:</strong> ${userAgent.browser}</p>
                 </div>
                 <p>If this was not you, please click on the following button to secure your account:</p>
-                <a href="SECURE_ACCOUNT_LINK" class="btn">Secure My Account</a>
+                <a href="${finLink}" class="btn">Secure My Account</a>
               </div>
             </body>
           </html>
@@ -157,10 +154,7 @@ export class MailService {
       })
       .then(() => {})
       .catch(e => {
-        throw new HttpException(
-          'Ошибка отправления сообщения',
-          HttpStatus.BAD_REQUEST
-        )
+        console.log(e)
       })
   }
 

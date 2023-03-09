@@ -10,6 +10,9 @@ import { ResponseUserDto } from './dto/responseUser.dto'
 import { RegisterResponseDto } from './dto/registerResponse.dto'
 import { LoginDto } from './dto/login.dto'
 import { UserAgentDto } from './dto/userAgent.dto'
+import axios from 'axios'
+import { OAuth2GoogleResponse } from './dto/oAuth2GoogleResponse.dto'
+import { OAuth2YandexResponse } from './dto/oAuth2YandexResponse.dto'
 
 @Injectable()
 export class AuthService {
@@ -73,23 +76,36 @@ export class AuthService {
   ): Promise<RegisterResponseDto> {
     const candidate = await this.userService.getByEmail(dto.email)
 
+    let user
+
     if (candidate) {
-      throw new HttpException(
-        'Пользователь с таким email существует',
-        HttpStatus.BAD_REQUEST
-      )
+      if (candidate.password === 'null') {
+        const hashPassword = await bcrypt.hash(dto.password, 5)
+        candidate.email = dto.email
+        candidate.firstName = dto.firstName
+        candidate.lastName = dto.lastName
+        candidate.password = hashPassword
+        candidate.isActivated = true
+        candidate.save()
+        user = candidate
+      } else {
+        throw new HttpException(
+          'Пользователь с таким email существует',
+          HttpStatus.BAD_REQUEST
+        )
+      }
+    } else {
+      const hashPassword = await bcrypt.hash(dto.password, 5)
+      const activationLink = uuid.v4()
+
+      this.mailService.sendActivation(dto.email, activationLink)
+
+      user = await this.userService.createUser({
+        ...dto,
+        password: hashPassword,
+        activationLink,
+      })
     }
-
-    const hashPassword = await bcrypt.hash(dto.password, 5)
-    const activationLink = uuid.v4()
-
-    this.mailService.sendActivation(dto.email, activationLink)
-
-    const user = await this.userService.createUser({
-      ...dto,
-      password: hashPassword,
-      activationLink,
-    })
 
     const tokens = this.tokenService.generateTokens({
       id: user.id,
@@ -147,6 +163,7 @@ export class AuthService {
 
     return {
       accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
       user: new ResponseUserDto(user),
     }
   }
@@ -232,5 +249,115 @@ export class AuthService {
     user.save()
 
     return true
+  }
+
+  async oauth2Google(token: string, userAgent: UserAgentDto) {
+    const userData = await axios.get<OAuth2GoogleResponse>(
+      `https://www.googleapis.com/oauth2/v1/userinfo`,
+      {
+        params: {
+          access_token: token,
+        },
+      }
+    )
+
+    const candidate = await this.userService.getByEmail(userData.data.email)
+
+    if (candidate) {
+      if (candidate.password === 'null') {
+        return { accessToken: '', user: new ResponseUserDto(candidate) }
+      }
+      const tokens = this.tokenService.generateTokens({
+        id: candidate.id,
+        email: candidate.email,
+        isActivated: candidate.isActivated,
+        role: candidate.role,
+      })
+
+      await this.tokenService.saveToken({
+        userId: candidate.id,
+        token: tokens.refreshToken,
+        userAgent: {
+          browser: userAgent.browser,
+          clientIp: userAgent.clientIp,
+          deviceName: userAgent.deviceName,
+          deviceType: userAgent.deviceType,
+          os: userAgent.os,
+        },
+      })
+
+      this.mailService.sendWarning(candidate.email, userAgent)
+
+      return {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: new ResponseUserDto(candidate),
+      }
+    } else {
+      const user = await this.userService.createUser({
+        email: userData.data.email,
+        lastName: userData.data.given_name,
+        firstName: userData.data.family_name,
+        password: 'null',
+      })
+
+      return { accessToken: '', user: new ResponseUserDto(user) }
+    }
+  }
+
+  async oauth2Yandex(token: string, userAgent: UserAgentDto) {
+    const userData = await axios.get<OAuth2YandexResponse>(
+      `https://login.yandex.ru/info`,
+      {
+        params: {
+          oauth_token: token,
+        },
+      }
+    )
+
+    const candidate = await this.userService.getByEmail(
+      userData.data.default_email
+    )
+
+    if (candidate) {
+      if (candidate.password === 'null') {
+        return { accessToken: '', user: new ResponseUserDto(candidate) }
+      }
+      const tokens = this.tokenService.generateTokens({
+        id: candidate.id,
+        email: candidate.email,
+        isActivated: candidate.isActivated,
+        role: candidate.role,
+      })
+
+      await this.tokenService.saveToken({
+        userId: candidate.id,
+        token: tokens.refreshToken,
+        userAgent: {
+          browser: userAgent.browser,
+          clientIp: userAgent.clientIp,
+          deviceName: userAgent.deviceName,
+          deviceType: userAgent.deviceType,
+          os: userAgent.os,
+        },
+      })
+
+      this.mailService.sendWarning(candidate.email, userAgent)
+
+      return {
+        accessToken: tokens.accessToken,
+        refreshToken: tokens.refreshToken,
+        user: new ResponseUserDto(candidate),
+      }
+    } else {
+      const user = await this.userService.createUser({
+        email: userData.data.default_email,
+        lastName: userData.data.last_name,
+        firstName: userData.data.first_name,
+        password: 'null',
+      })
+
+      return { accessToken: '', user: new ResponseUserDto(user) }
+    }
   }
 }

@@ -3,7 +3,7 @@ import { AuthService } from './auth.service'
 import { RegisterDto } from './dto/register.dto'
 import { Request, Response } from 'express'
 import { LoginDto } from './dto/login.dto'
-import { Param, Put, Redirect } from '@nestjs/common/decorators'
+import { Param, Put, Redirect, UseGuards } from '@nestjs/common/decorators'
 
 @Controller('/api/auth')
 export class AuthController {
@@ -62,14 +62,25 @@ export class AuthController {
   }
 
   @Get('/refresh')
-  refresh(@Req() req: Request) {
-    return this.authService.refresh(req.cookies.refreshToken, {
+  async refresh(@Req() req: Request, @Res() res: Response) {
+    const data = await this.authService.refresh(req.cookies.refreshToken, {
       clientIp: req.clientIp,
       browser: req.browser,
       deviceName: req.deviceName,
       deviceType: req.deviceType,
       os: req.os,
     })
+
+    return res
+      .cookie('refreshToken', data.refreshToken, {
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 1000,
+        sameSite: 'lax',
+      })
+      .json({
+        accessToken: data.accessToken,
+        user: data.user,
+      })
   }
 
   @Get('/activate/:link')
@@ -102,5 +113,71 @@ export class AuthController {
     @Param('code') code: string
   ) {
     return this.authService.switchForgotPass(password, code)
+  }
+
+  @Post('/oauth2/google/login')
+  async googleLogin(
+    @Body('token') token: string,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    const data = await this.authService.oauth2Google(token, {
+      clientIp: req.clientIp,
+      browser: req.browser,
+      deviceName: req.deviceName,
+      deviceType: req.deviceType,
+      os: req.os,
+    })
+
+    if (data.accessToken) {
+      return res
+        .cookie('refreshToken', data.refreshToken, {
+          httpOnly: true,
+          maxAge: 30 * 24 * 60 * 1000,
+          sameSite: 'lax',
+        })
+        .json({
+          accessToken: data.accessToken,
+          user: data.user,
+        })
+    } else {
+      res.json({
+        accessToken: data.accessToken,
+        user: data.user,
+      })
+    }
+  }
+
+  @Post('/oauth2/yandex/login')
+  async yandexLogin(
+    @Body('token') token: string,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    const data = await this.authService.oauth2Yandex(token, {
+      clientIp: req.clientIp,
+      browser: req.browser,
+      deviceName: req.deviceName,
+      deviceType: req.deviceType,
+      os: req.os,
+    })
+
+    if (data.accessToken) {
+      return res
+        .cookie('refreshToken', data.refreshToken, {
+          httpOnly: true,
+          maxAge: 30 * 24 * 60 * 1000,
+          sameSite: 'lax',
+        })
+        .json({
+          accessToken: data.accessToken,
+          user: data.user,
+        })
+    } else {
+      res.json({
+        accessToken: data.accessToken,
+        user: data.user,
+      })
+    }
   }
 }

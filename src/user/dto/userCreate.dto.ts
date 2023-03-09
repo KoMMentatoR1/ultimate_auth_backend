@@ -3,5 +3,5 @@ export class UserCreateDto {
   readonly firstName: string
   readonly email: string
   readonly password: string
-  readonly activationLink: string
+  readonly activationLink?: string
 }
