@@ -1,14 +1,14 @@
-import { MailerModule } from '@nestjs-modules/mailer'
-import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter'
-import { Module } from '@nestjs/common'
-import { ConfigModule } from '@nestjs/config'
-import { SequelizeModule } from '@nestjs/sequelize'
-import { AuthModule } from './auth/auth.module'
-import { MailModule } from './mail/mail.module'
-import { UserToken } from './token/token.model'
-import { TokenModule } from './token/token.module'
-import { User } from './user/user.model'
-import { UserModule } from './user/user.module'
+import { MailerModule } from '@nestjs-modules/mailer';
+import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { SequelizeModule } from '@nestjs/sequelize';
+import { AuthModule } from './auth/auth.module';
+import { MailModule } from './mail/mail.module';
+import { UserToken } from './token/token.model';
+import { TokenModule } from './token/token.module';
+import { User } from './user/user.model';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -39,11 +39,11 @@ import { UserModule } from './user/user.module'
     }),
     SequelizeModule.forRoot({
       dialect: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: '145415',
-      database: 'authService',
+      host: process.env.DB_HOST || 'localhost',
+      port: Number(process.env.DB_PORT) || 5432,
+      username: process.env.DB_USER || 'postgres',
+      password: process.env.DB_PASSWORD || 'postgres',
+      database: process.env.DB_NAME || 'auth-database',
       models: [User, UserToken],
       autoLoadModels: true,
     }),
