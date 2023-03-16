@@ -1,4 +1,4 @@
-FROM node:19-alpine3.16
+FROM node:16.13.0
 
 ARG DB_PORT=5432 
 
