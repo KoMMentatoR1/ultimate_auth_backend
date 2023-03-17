@@ -3,7 +3,6 @@ import { InjectModel } from '@nestjs/sequelize'
 import { UserCreateDto } from './dto/userCreate.dto'
 import { User } from './user.model'
 import { v4 as uuidv4 } from 'uuid'
-import { UserUpdateDto } from './dto/updateUser.dto'
 
 @Injectable()
 export class UserService {
