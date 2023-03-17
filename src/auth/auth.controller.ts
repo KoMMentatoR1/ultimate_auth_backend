@@ -4,6 +4,8 @@ import { RegisterDto } from './dto/register.dto'
 import { Request, Response } from 'express'
 import { LoginDto } from './dto/login.dto'
 import { Param, Put, Redirect, UseGuards } from '@nestjs/common/decorators'
+import { AuthGuard } from '@nestjs/passport'
+import { SwitchPassDto } from './dto/switchPass.dto'
 
 @Controller('/api/auth')
 export class AuthController {
@@ -179,5 +181,11 @@ export class AuthController {
         user: data.user,
       })
     }
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/switchPassword')
+  switchPass(@Body() dto: SwitchPassDto) {
+    return this.authService.switchPass(dto)
   }
 }
