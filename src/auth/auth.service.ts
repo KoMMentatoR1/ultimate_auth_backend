@@ -385,12 +385,10 @@ export class AuthService {
     return { message: 'Пароль успешно изменен' }
   }
 
-  async logout(authorization: string) {
-    const token = await this.tokenService.deleteToken(
-      authorization.split(' ')[1]
-    )
+  async logout(refreshToken: string) {
+    const token = await this.tokenService.deleteToken(refreshToken)
     if (token) {
-      return true
+      return { message: 'Вы успешно разлогинены' }
     } else {
       throw new HttpException('Токен не существует', HttpStatus.BAD_REQUEST)
     }
