@@ -13,7 +13,7 @@ import { UserAgentDto } from './dto/userAgent.dto'
 import axios from 'axios'
 import { OAuth2GoogleResponse } from './dto/oAuth2GoogleResponse.dto'
 import { OAuth2YandexResponse } from './dto/oAuth2YandexResponse.dto'
-import { AuthGuard } from '@nestjs/passport'
+import { SwitchPassDto } from './dto/switchPass.dto'
 
 @Injectable()
 export class AuthService {
@@ -362,7 +362,29 @@ export class AuthService {
     }
   }
 
-  @UseGuards(AuthGuard('jwt'))
+  async switchPass(dto: SwitchPassDto) {
+    const user = await this.userService.getById(dto.id)
+
+    const isPassEquils = await bcrypt.compare(dto.password, user.password)
+
+    if (!isPassEquils) {
+      throw new HttpException('Неверный старый пароль', HttpStatus.BAD_REQUEST)
+    }
+
+    const isNewPassEquils = await bcrypt.compare(dto.newPassword, user.password)
+
+    if (isNewPassEquils) {
+      throw new HttpException(
+        'Новый пароль не может совпадать со старым',
+        HttpStatus.BAD_REQUEST
+      )
+    }
+
+    const hashPassword = await bcrypt.hash(dto.newPassword, 3)
+    await user.update({ password: hashPassword })
+    return { message: 'Пароль успешно изменен' }
+  }
+
   async logout(authorization: string) {
     const token = await this.tokenService.deleteToken(
       authorization.split(' ')[1]
