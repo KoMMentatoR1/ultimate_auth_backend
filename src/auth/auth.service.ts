@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus } from '@nestjs/common'
-import { Injectable } from '@nestjs/common/decorators'
+import { Injectable, UseGuards } from '@nestjs/common/decorators'
 import { MailService } from 'src/mail/mail.service'
 import { TokenService } from 'src/token/token.service'
 import { UserService } from 'src/user/user.service'
@@ -383,5 +383,16 @@ export class AuthService {
     const hashPassword = await bcrypt.hash(dto.newPassword, 3)
     await user.update({ password: hashPassword })
     return { message: 'Пароль успешно изменен' }
+  }
+
+  async logout(authorization: string) {
+    const token = await this.tokenService.deleteToken(
+      authorization.split(' ')[1]
+    )
+    if (token) {
+      return true
+    } else {
+      throw new HttpException('Токен не существует', HttpStatus.BAD_REQUEST)
+    }
   }
 }

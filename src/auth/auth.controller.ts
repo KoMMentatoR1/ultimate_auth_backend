@@ -188,4 +188,17 @@ export class AuthController {
   switchPass(@Body() dto: SwitchPassDto) {
     return this.authService.switchPass(dto)
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/logout')
+  async logout(@Res() res: Response, @Req() req: Request) {
+    console.log(req)
+
+    await this.authService.logout(req.cookies.refreshToken)
+    return res.status(200).cookie('refreshToken', '', {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 1000,
+      sameSite: 'lax',
+    })
+  }
 }
