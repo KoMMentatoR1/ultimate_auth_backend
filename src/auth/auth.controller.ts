@@ -4,6 +4,7 @@ import { RegisterDto } from './dto/register.dto'
 import { Request, Response } from 'express'
 import { LoginDto } from './dto/login.dto'
 import { Param, Put, Redirect, UseGuards } from '@nestjs/common/decorators'
+import { AuthGuard } from '@nestjs/passport'
 
 @Controller('/api/auth')
 export class AuthController {
@@ -179,5 +180,18 @@ export class AuthController {
         user: data.user,
       })
     }
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post('/logout')
+  async logout(@Res() res: Response, @Req() req: Request) {
+    console.log(req)
+
+    await this.authService.logout(req.cookies.refreshToken)
+    return res.status(200).cookie('refreshToken', '', {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 1000,
+      sameSite: 'lax',
+    })
   }
 }
