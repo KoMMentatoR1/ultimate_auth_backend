@@ -43,7 +43,7 @@ import { UserModule } from './user/user.module'
       port: 5433,
       username: 'postgres',
       password: 'postgres',
-      database: 'authService',
+      database: 'auth',
       models: [User, UserToken],
       autoLoadModels: true,
     }),
